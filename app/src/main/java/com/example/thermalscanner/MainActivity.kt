@@ -1,29 +1,38 @@
 package com.example.thermalscanner
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.BatteryManager
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.widget.Button
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import java.io.File
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var output: TextView
+    private lateinit var btnPause: Button
     private val handler = Handler(Looper.getMainLooper())
     private val refreshIntervalMs = 2000L
+    private var isPaused = false
+    private var lastReport = ""
 
-    // Cache of thermal_zone -> type, so we only read the "type" file once
-    // (it never changes at runtime, only "temp" does).
     private val zoneTypes = LinkedHashMap<File, String>()
 
     private val tickRunnable = object : Runnable {
         override fun run() {
-            output.text = buildReport()
-            handler.postDelayed(this, refreshIntervalMs)
+            lastReport = buildReport()
+            output.text = lastReport
+            if (!isPaused) {
+                handler.postDelayed(this, refreshIntervalMs)
+            }
         }
     }
 
@@ -31,12 +40,35 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         output = findViewById(R.id.output)
+        btnPause = findViewById(R.id.btnPause)
+        val btnCopy: Button = findViewById(R.id.btnCopy)
+
         discoverThermalZones()
+
+        btnPause.setOnClickListener {
+            isPaused = !isPaused
+            if (isPaused) {
+                handler.removeCallbacks(tickRunnable)
+                btnPause.text = "Продовжити"
+            } else {
+                btnPause.text = "Пауза"
+                handler.post(tickRunnable)
+            }
+        }
+
+        btnCopy.setOnClickListener {
+            val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            val clip = ClipData.newPlainText("Thermal report", lastReport)
+            clipboard.setPrimaryClip(clip)
+            Toast.makeText(this, "Скопійовано в буфер обміну", Toast.LENGTH_SHORT).show()
+        }
     }
 
     override fun onResume() {
         super.onResume()
-        handler.post(tickRunnable)
+        if (!isPaused) {
+            handler.post(tickRunnable)
+        }
     }
 
     override fun onPause() {
@@ -44,7 +76,6 @@ class MainActivity : AppCompatActivity() {
         handler.removeCallbacks(tickRunnable)
     }
 
-    /** Finds every /sys/class/thermal/thermal_zoneN directory and reads its "type" once. */
     private fun discoverThermalZones() {
         val thermalDir = File("/sys/class/thermal")
         val zoneDirs = thermalDir.listFiles { f -> f.name.startsWith("thermal_zone") }
@@ -73,8 +104,6 @@ class MainActivity : AppCompatActivity() {
             val tempStr = if (raw != null) {
                 val milli = raw.trim().toLongOrNull()
                 if (milli != null) {
-                    // Most vendors report milli-degrees C; some report raw degrees.
-                    // Heuristic: values above 1000 are almost certainly milli-degrees.
                     val celsius = if (milli > 1000 || milli < -1000) milli / 1000.0 else milli.toDouble()
                     String.format("%.1f°C", celsius)
                 } else {
