@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#101010">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Налаштування overlay"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:paddingBottom="16dp" />
+
+        <TextView android:id="@+id/labelWidth" style="@style/SettingLabel" android:text="Ширина вікна" />
+        <SeekBar android:id="@+id/seekWidth" android:layout_width="match_parent" android:layout_height="wrap_content" android:max="200" />
+
+        <TextView android:id="@+id/labelTextSize" style="@style/SettingLabel" android:text="Розмір тексту" />
+        <SeekBar android:id="@+id/seekTextSize" android:layout_width="match_parent" android:layout_height="wrap_content" android:max="16" />
+
+        <TextView android:id="@+id/labelOpacity" style="@style/SettingLabel" android:text="Прозорість фону" />
+        <SeekBar android:id="@+id/seekOpacity" android:layout_width="match_parent" android:layout_height="wrap_content" android:max="100" />
+
+        <TextView android:id="@+id/labelRefresh" style="@style/SettingLabel" android:text="Інтервал оновлення" />
+        <SeekBar android:id="@+id/seekRefresh" android:layout_width="match_parent" android:layout_height="wrap_content" android:max="9" />
+
+        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#333333" android:layout_marginTop="16dp" android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Метрики"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:paddingBottom="8dp" />
+
+        <com.google.android.material.switchmaterial.SwitchMaterial
+            android:id="@+id/switchCpu" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="CPU (завантаження + температура)" android:textColor="#FFFFFF" />
+
+        <com.google.android.material.switchmaterial.SwitchMaterial
+            android:id="@+id/switchGpu" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="GPU (завантаження + температура)" android:textColor="#FFFFFF" />
+
+        <com.google.android.material.switchmaterial.SwitchMaterial
+            android:id="@+id/switchChip" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="Температура SoC (чіп)" android:textColor="#FFFFFF" />
+
+        <com.google.android.material.switchmaterial.SwitchMaterial
+            android:id="@+id/switchRam" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="RAM використано/всього" android:textColor="#FFFFFF" />
+
+        <com.google.android.material.switchmaterial.SwitchMaterial
+            android:id="@+id/switchBattery" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="Батарея (заряд + Вт)" android:textColor="#FFFFFF" />
+
+        <com.google.android.material.switchmaterial.SwitchMaterial
+            android:id="@+id/switchCompact" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="Компактний формат (по 2 в рядок)" android:textColor="#FFFFFF"
+            android:layout_marginTop="8dp" />
+
+        <Button
+            android:id="@+id/btnResetPosition"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="Скинути позицію вікна" />
+
+        <Button
+            android:id="@+id/btnDone"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Готово" />
+
+    </LinearLayout>
+</ScrollView>

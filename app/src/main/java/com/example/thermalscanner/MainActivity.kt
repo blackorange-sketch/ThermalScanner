@@ -1,29 +1,53 @@
 package com.example.thermalscanner
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.net.Uri
 import android.os.BatteryManager
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.provider.Settings
+import android.widget.Button
 import android.widget.TextView
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import java.io.File
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var output: TextView
+    private lateinit var btnPause: Button
+    private lateinit var overlayStatus: TextView
+    private lateinit var btnPermission: Button
+    private lateinit var btnToggleOverlay: Button
     private val handler = Handler(Looper.getMainLooper())
     private val refreshIntervalMs = 2000L
+    private var isPaused = false
+    private var lastReport = ""
+    private var overlayRunning = false
 
     // Cache of thermal_zone -> type, so we only read the "type" file once
     // (it never changes at runtime, only "temp" does).
     private val zoneTypes = LinkedHashMap<File, String>()
 
+    private val overlayPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+            refreshOverlayUi()
+        }
+
     private val tickRunnable = object : Runnable {
         override fun run() {
-            output.text = buildReport()
-            handler.postDelayed(this, refreshIntervalMs)
+            lastReport = buildReport()
+            output.text = lastReport
+            if (!isPaused) {
+                handler.postDelayed(this, refreshIntervalMs)
+            }
         }
     }
 
@@ -31,12 +55,85 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         output = findViewById(R.id.output)
+        btnPause = findViewById(R.id.btnPause)
+        val btnCopy: Button = findViewById(R.id.btnCopy)
+        overlayStatus = findViewById(R.id.overlayStatus)
+        btnPermission = findViewById(R.id.btnPermission)
+        btnToggleOverlay = findViewById(R.id.btnToggleOverlay)
+        val btnSettings: Button = findViewById(R.id.btnSettings)
+
         discoverThermalZones()
+
+        btnPause.setOnClickListener {
+            isPaused = !isPaused
+            if (isPaused) {
+                handler.removeCallbacks(tickRunnable)
+                btnPause.text = "Продовжити"
+            } else {
+                btnPause.text = "Пауза"
+                handler.post(tickRunnable)
+            }
+        }
+
+        btnCopy.setOnClickListener {
+            val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            val clip = ClipData.newPlainText("Thermal report", lastReport)
+            clipboard.setPrimaryClip(clip)
+            Toast.makeText(this, "Скопійовано в буфер обміну", Toast.LENGTH_SHORT).show()
+        }
+
+        btnPermission.setOnClickListener {
+            val intent = Intent(
+                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                Uri.parse("package:$packageName")
+            )
+            overlayPermissionLauncher.launch(intent)
+        }
+
+        btnToggleOverlay.setOnClickListener {
+            if (!hasOverlayPermission()) {
+                Toast.makeText(this, "Спочатку дозволь оверлей", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            if (overlayRunning) {
+                stopService(Intent(this, OverlayService::class.java))
+            } else {
+                val svcIntent = Intent(this, OverlayService::class.java)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    startForegroundService(svcIntent)
+                } else {
+                    startService(svcIntent)
+                }
+            }
+            overlayRunning = !overlayRunning
+            refreshOverlayUi()
+        }
+
+        btnSettings.setOnClickListener {
+            startActivity(Intent(this, SettingsActivity::class.java))
+        }
+    }
+
+    private fun hasOverlayPermission(): Boolean =
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(this)
+
+    private fun refreshOverlayUi() {
+        val granted = hasOverlayPermission()
+        btnPermission.isEnabled = !granted
+        overlayStatus.text = when {
+            !granted -> "Overlay: дозвіл не надано"
+            overlayRunning -> "Overlay: запущено"
+            else -> "Overlay: дозвіл є, вимкнено"
+        }
+        btnToggleOverlay.text = if (overlayRunning) "Зупинити" else "Запустити"
     }
 
     override fun onResume() {
         super.onResume()
-        handler.post(tickRunnable)
+        refreshOverlayUi()
+        if (!isPaused) {
+            handler.post(tickRunnable)
+        }
     }
 
     override fun onPause() {
