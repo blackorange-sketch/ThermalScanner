@@ -6,7 +6,6 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.BatteryManager
 import java.io.File
-import java.io.RandomAccessFile
 
 /**
  * Reads system metrics: thermal zones (grouped), CPU load, GPU load (Adreno),
@@ -66,8 +65,8 @@ object SysMonitor {
     /** CPU load 0..100, or null on first call / if /proc/stat unavailable. Call periodically. */
     fun cpuLoadPercent(): Double? {
         return try {
-            RandomAccessFile("/proc/stat", "r").use { raf ->
-                val line = raf.readLine() ?: return null
+            val line = File("/proc/stat").bufferedReader().use { it.readLine() } ?: return null
+            run {
                 val parts = line.trim().split(Regex("\\s+"))
                 if (parts.isEmpty() || parts[0] != "cpu") return null
                 val nums = parts.drop(1).mapNotNull { it.toLongOrNull() }

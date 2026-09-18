@@ -181,7 +181,8 @@ class OverlayService : Service() {
         if (showBattery) {
             val bat = SysMonitor.batteryInfo(this)
             val wattsStr = bat.watts?.let { String.format("%.1fW", it) } ?: "н/д"
-            rows.add("Батарея ${bat.percent}% $wattsStr")
+            val tempStr = bat.tempC?.let { String.format("%.0f°C", it) } ?: "н/д"
+            rows.add("Батарея ${bat.percent}% $wattsStr $tempStr")
         }
 
         textView.text = if (compact) {
